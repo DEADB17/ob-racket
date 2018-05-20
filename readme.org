@@ -21,60 +21,121 @@ section in the [[https://orgmode.org/manual/][org manual]].
 
 
 ** Examples
+*** Primitives
+#+BEGIN_EXAMPLE
+  ,#+begin_src racket :results replace :exports results
+    "Hello world"
+    1234.567
+    'a-symbol
+    '(a list of symbols)
+  ,#+end_src
+#+END_EXAMPLE
 
-#+NAME: hello
+#+NAME: primitives
 #+begin_src racket :results replace :exports results
   "Hello world"
+  1234.567
+  'a-symbol
+  '(a list of symbols)
 #+end_src
-
-#+RESULTS: hello
+Outputs:
+#+RESULTS: primitives
 : "Hello world"
+: 1234.567
+: 'a-symbol
+: '(a list of symbols)
 
 
+*** Lists
+#+BEGIN_EXAMPLE
+  ,#+NAME: a-list
+  ,#+begin_src racket :results replace list value :exports results
+    '(hello wonderful world)
+  ,#+end_src
+#+END_EXAMPLE
 
 #+NAME: a-list
 #+begin_src racket :results replace list value :exports results
   '(hello wonderful world)
 #+end_src
-
+Outputs:
 #+RESULTS: a-list
 - hello
 - wonderful
 - world
 
 
+*** Variables and tables
+#+BEGIN_EXAMPLE
+  ,#+begin_src racket :results replace table value :exports results :var input=a-list
+    (list input null input)
+  ,#+end_src
+#+END_EXAMPLE
 
+#+NAME: vars-and-tables
 #+begin_src racket :results replace table value :exports results :var input=a-list
   (list input null input)
 #+end_src
-
-#+RESULTS:
+Outputs:
+#+RESULTS: vars-and-tables
 | hello | wonderful | world |
 |-------+-----------+-------|
 | hello | wonderful | world |
 
 
+*** Body
+#+BEGIN_EXAMPLE
+  ,#+begin_src racket :results replace :exports results :eval-fun "body"
+    (display "Hello World")
+  ,#+end_src
+#+END_EXAMPLE
 
-#+begin_src racket :results replace :exports results :var input=a-list
-  input
+#+NAME: eval-fun-body
+#+begin_src racket :results replace :exports results :eval-fun "body"
+  (display "Hello World")
 #+end_src
+Outputs:
+#+RESULTS: eval-fun-body
+: (display "Hello World")
 
-#+RESULTS:
-: "'(hello wonderful world)\n"
 
+*** Code
+#+BEGIN_EXAMPLE
+  ,#+begin_src racket :results replace :exports results :eval-fun "code" :var x=a-list
+    (display x)
+    (display "Hello World")
+  ,#+end_src
+#+END_EXAMPLE
 
-
-#+begin_src racket :results replace :exports results
-  '((hello wonderful world)
-    nil
-    (godbye cruel world))
+#+NAME: eval-fun-code
+#+begin_src racket :results replace :exports results :eval-fun "code" :var x=a-list
+  (display x)
+  (display "Hello World")
 #+end_src
+Outputs:
+#+RESULTS: eval-fun-code
+: #lang racket
+: (define-values (x) (values '(hello wonderful world)))
+: (display x)
+: (display "Hello World")
 
-#+RESULTS:
-| hello  | wonderful | world |
-|--------+-----------+-------|
-| godbye | cruel     | world |
 
+*** File
+#+BEGIN_EXAMPLE
+  ,#+begin_src racket :lang racket/base :eval-file code.rkt
+    (provide fn)
+    (define (fn)
+      (display "Hello World"))
+  ,#+end_src
+#+END_EXAMPLE
+Creates the file =code.rkt= with this content:
+#+begin_src racket
+  #lang racket/base
+
+  (provide fn)
+  (define (fn)
+    (display "Hello World"))
+#+end_src
 
 
 ** Source code

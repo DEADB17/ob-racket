@@ -14,6 +14,19 @@ section in the [[https://orgmode.org/manual/][org manual]].
 - hasu https://github.com/hasu/emacs-ob-racket
 - xchrishawk https://github.com/xchrishawk/ob-racket
 
+** Installation
+1. Download [[ob-racket.el]] and place it in your =load-path=
+2. When using [[https://jwiegley.github.io/use-package/][use-package]] add the following to your =init.el= file:
+   #+begin_src elisp
+     (use-package ob-racket
+       :after org
+       :pin manual
+       :ensure nil
+       :config
+       (append '((racket . t) (scribble . t)) org-babel-load-languages))
+   #+end_src
+
+
 ** Requirements                                                      :noexport:
 - [[https://orgmode.org/#org40820f7][Org mode]]
 - [[http://racket-lang.org/][Racket]]

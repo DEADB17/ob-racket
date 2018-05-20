@@ -45,8 +45,6 @@
 ;;; Code:
 
 (require 'ob)
-;; (require 'ob-core)
-;; (eval-when-compile (require 'cl))
 
 ;; add racket to languages supported by org
 (defvar org-babel-tangle-lang-exts)

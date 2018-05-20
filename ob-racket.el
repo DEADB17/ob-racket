@@ -82,7 +82,7 @@ just interactively checking that a Racket listing has been typed
 in correctly.
 Defaulting `:lang' to `racket' as it is the most common option.")
 
-(defun org-babel-racket--table-or-string (results)
+(defun ob-racket--table-or-string (results)
   "Convert RESULTS into an appropriate elisp value.
 If RESULTS look like a table, then convert them into an Emacs-lisp table,
 otherwise return the results as a string."
@@ -219,7 +219,7 @@ As special cases, :eval-fun may be specified as:
     (org-babel-reassemble-table
      (org-babel-result-cond (cdr (assq :result-params params))
        result
-       (org-babel-racket--table-or-string result))
+       (ob-racket--table-or-string result))
      (org-babel-pick-name (cdr (assq :colname-names params))
                           (cdr (assq :colnames params)))
      (org-babel-pick-name (cdr (assq :rowname-names params))

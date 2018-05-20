@@ -14,7 +14,7 @@ section in the [[https://orgmode.org/manual/][org manual]].
 - hasu https://github.com/hasu/emacs-ob-racket
 - xchrishawk https://github.com/xchrishawk/ob-racket
 
-** Requirements
+** Requirements                                                      :noexport:
 - [[https://orgmode.org/#org40820f7][Org mode]]
 - [[http://racket-lang.org/][Racket]]
 - Either [[https://github.com/greghendershott/racket-mode][racket-mode]] or [[http://www.nongnu.org/geiser/][geiser]]

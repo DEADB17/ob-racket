@@ -82,7 +82,7 @@ The contents of [[./ob-racket.el][ob-racket.el]] are extracted from this file. T
 code, open this file in an Emacs buffer and =M-x= =org-babel-tangle-file=. The
 complete source will be in exported to =ob-racket.el=.
 
-*** Main
+*** Main (Public functions)
 **** Wrapper                                                       :noexport:
 #+NAME: main
 #+begin_src emacs-lisp :noweb yes
@@ -92,7 +92,7 @@ complete source will be in exported to =ob-racket.el=.
 #+end_src
 
 
-**** Execute function
+**** org-babel-execute:racket
 #+NAME: execute
 #+BEGIN_SRC emacs-lisp
   (defun org-babel-execute:racket (body params)
@@ -167,7 +167,7 @@ complete source will be in exported to =ob-racket.el=.
 #+END_SRC
 
 
-**** TODO Session
+**** TODO org-babel-prep-session:racket
 #+NAME: session
 #+BEGIN_SRC emacs-lisp
   (defun org-babel-prep-session:racket (session params)
@@ -176,9 +176,9 @@ complete source will be in exported to =ob-racket.el=.
 #+END_SRC
 
 
-*** Helper functions
+*** Auxiliary (Private functions)
 **** Wrapper                                                       :noexport:
-#+NAME: helper-functions
+#+NAME: auxiliary
 #+begin_src emacs-lisp :noweb yes
   <<table-or-string>>
 
@@ -190,7 +190,7 @@ complete source will be in exported to =ob-racket.el=.
 #+END_SRC
 
 
-**** Table or string /Private/
+**** ob-racket--table-or-string
 :PROPERTIES:
 :VISIBILITY: folded
 :END:
@@ -211,7 +211,7 @@ complete source will be in exported to =ob-racket.el=.
 #+END_SRC
 
 
-**** Expand body
+**** ob-racket--expand-body
 #+NAME: expand-body
 #+BEGIN_SRC emacs-lisp
   (defun ob-racket--expand-body (body params)
@@ -240,7 +240,7 @@ complete source will be in exported to =ob-racket.el=.
 #+END_SRC
 
 
-**** Vars to values /Private/
+**** ob-racket--vars-to-values
 #+NAME: vars-to-values
 #+BEGIN_SRC emacs-lisp
   (defun ob-racket--vars-to-values (vars)
@@ -258,7 +258,7 @@ complete source will be in exported to =ob-racket.el=.
 #+END_SRC
 
 
-**** Expand fmt
+**** ob-racket--expand-fmt
 #+NAME: expand-fmt
 #+BEGIN_SRC emacs-lisp
   (defun ob-racket--expand-fmt (fmt &optional params)
@@ -388,7 +388,7 @@ racket~.
 
   <<defaults>>
 
-  <<helper-functions>>
+  <<auxiliary>>
 
   <<main>>
 

@@ -108,7 +108,7 @@ VARS are wrapped as define-values."
                    (format (if (listp val) " '%S" " %S") val))) vars "")
     "))")))
 
-(defun ob-racket-expand-fmt (fmt &optional params)
+(defun ob-racket--expand-fmt (fmt &optional params)
   "Expands a format list `FMT', and return a string.
 PARAMS
 Substitutes symbols according to the `params` alist.
@@ -149,10 +149,10 @@ case it is returned as is."
   (mapconcat #'identity
              (append
               (list (format "#lang %s\n" lang-line))
-              (when pro (list (ob-racket-expand-fmt pro)))
+              (when pro (list (ob-racket--expand-fmt pro)))
               var-defs
               (list body)
-              (when epi (list (ob-racket-expand-fmt epi))))
+              (when epi (list (ob-racket--expand-fmt epi))))
              "\n")))
 
 (defun org-babel-execute:racket (body params)
@@ -211,7 +211,7 @@ As special cases, :eval-fun may be specified as:
                                                             (obj-file
                                                              . ,(and out-fn
                                                                      (shell-quote-argument out-fn))))))
-                                                     (ob-racket-expand-fmt cmd-fmt fmt-par))))
+                                                     (ob-racket--expand-fmt cmd-fmt fmt-par))))
                                               (message sh-cmd)
                                               (shell-command-to-string sh-cmd)))
                             ((listp eval-fun) (funcall (eval eval-fun t) in-fn out-fn))

@@ -131,7 +131,7 @@ case it is returned as is."
         (t (error "Expected string or symbol: %S" fmt))))
      fmt "")))
 
-(defun org-babel-expand-body:racket (body params)
+(defun ob-racket--expand-body (body params)
   "Expands BODY according to PARAMS, returning the expanded body."
   (let ((lang-line (cdr (assoc :lang params)))
         (pro (cdr (assoc :prologue params)))
@@ -176,7 +176,7 @@ As special cases, :eval-fun may be specified as:
 - \"file\", to have the result name a file containing the code"
   (let* ((eval-fun    (cdr (assoc :eval-fun params)))
          (result-type (cdr (assoc :result-type params)))
-         (full-body   (org-babel-expand-body:racket
+         (full-body   (ob-racket--expand-body
                        (cond
                         ((eq 'value result-type)  (format "(write (begin %s))" body))
                         ((eq 'output result-type) body)

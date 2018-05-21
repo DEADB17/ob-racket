@@ -50,13 +50,6 @@
 (defvar org-babel-tangle-lang-exts)
 (add-to-list 'org-babel-tangle-lang-exts '("racket" . "rkt"))
 
-(defcustom org-babel-racket-command "racket"
-  "Name of command to use for executing Racket code."
-  :group 'org-babel
-  :version "25.3"
-  :package-version '(Org . "9.1.6")
-  :type 'string)
-
 (defcustom org-babel-racket-hline-to "nil"
   "Replace hlines in incoming tables with this when translating to racket."
   :group 'org-babel
@@ -72,15 +65,9 @@
   :type 'symbol)
 
 (defvar org-babel-default-header-args:racket
-  '((:results . "output silent")
-    (:lang . "racket"))
+  '((:cmd . "racket --require-script"))
   "Default arguments when evaluating a Racket source block.
-Defaulting `:results' `collection' to `output' as `value' is more
-limited.
-Defaulting `:results' `handling' to `silent' as it is handy for
-just interactively checking that a Racket listing has been typed
-in correctly.
-Defaulting `:lang' to `racket' as it is the most common option.")
+Defaulting `:cmd' to `racket --require-script'.")
 
 (defun ob-racket--table-or-string (results)
   "Convert RESULTS into an appropriate elisp value.
@@ -131,12 +118,12 @@ case it is returned as is."
         (t (error "Expected string or symbol: %S" fmt))))
      fmt "")))
 
-(defun ob-racket--expand-body (body params)
-  "Expands BODY according to PARAMS, returning the expanded body."
-  (let ((lang-line (cdr (assoc :lang params)))
-        (pro (cdr (assoc :prologue params)))
-        (epi (cdr (assoc :epilogue params)))
-        (vars (org-babel--get-vars params))
+(defun ob-racket--wrap-body (body lang vars prologue epilogue)
+  "Wraps BODY with LANG as well as VARS, PROLOGUE and EPILOGUE if present.
+If LANG is NIL, it defaults to `racket'.
+VARS is only supported when LANG starts with `racket', `plai' or `lazy'.
+Returns the wrapped body as a string."
+  (let ((lang-line (or lang "racket"))
         (var-defs nil))
     (when (> (length vars) 0)
       (if (or (string-prefix-p "racket" lang-line)
@@ -149,81 +136,51 @@ case it is returned as is."
   (mapconcat #'identity
              (append
               (list (format "#lang %s\n" lang-line))
-              (when pro (list (ob-racket--expand-fmt pro)))
+              (when prologue (list (ob-racket--expand-fmt pro)))
               var-defs
               (list body)
-              (when epi (list (ob-racket--expand-fmt epi))))
+              (when epilogue (list (ob-racket--expand-fmt epi))))
              "\n")))
 
 (defun org-babel-execute:racket (body params)
   "Evaluate a `racket' code block.
 BODY and PARAMS
-Some custom header arguments are supported for extra control over how the
-evaluation is to happen.
+Some custom header arguments are supported to control the evaluation.
 These are:
-- :eval-file pathname (file for code to evaluate)
-- :cmd `shell-command' (defaults to '(\"racket -u\" eval-file))
-- :eval-fun lam-expr (as: in-fn out-fn -> result-string)
-The `shell-command' may also be a list of strings that will be concatenated; the
-list may also contain one of the following symbols:
-- `eval-file', replaced with source pathname
-- `obj-file', replaced with any target \"file\" pathname
-For more control, the :eval-fun parameter may specify a lambda expression to
-define how to process the block.
-As special cases, :eval-fun may be specified as:
-- \"body\", to have the result be the bare body content
-- \"code\", to have the result be the expanded code
-- \"file\", to have the result name a file containing the code"
-  (let* ((eval-fun    (cdr (assoc :eval-fun params)))
-         (result-type (cdr (assoc :result-type params)))
-         (full-body   (ob-racket--expand-body
-                       (cond
-                        ((eq 'value result-type)  (format "(write (begin %s))" body))
-                        ((eq 'output result-type) body)
-                        (t (error "Expected :results of `output` or `value`")))
-                       params))
-         (result (cond
-                  ((equal eval-fun "body")  body)
-                  ((equal eval-fun "code")  full-body)
-                  ((equal eval-fun "debug") (format "params=%S" params))
-                  (t (let ((eval-file (or (cdr (assoc :eval-file params))
-                                          (org-babel-temp-file "org-babel-" ".rkt"))))
-                       (with-temp-file eval-file (insert full-body))
-                       (cond
-                        ((equal eval-fun "file") (org-babel-process-file-name eval-file t))
-                        (t
-                         (let* ((in-fn    (org-babel-process-file-name eval-file t))
-                                (obj-file (cdr (assoc :file params)))
-                                (out-fn   (and obj-file
-                                               (org-babel-process-file-name obj-file t)))
-                                (exec-f   (function
-                                           (lambda (cmd)
-                                             (message cmd)
-                                             (shell-command-to-string cmd)))))
-                           (cond
-                            ((not eval-fun) (let ((sh-cmd
-                                                   (let ((cmd-fmt
-                                                          (or (cdr (assoc :cmd params))
-                                                              '("racket -u " eval-file)))
-                                                         (fmt-par
-                                                          `((eval-file
-                                                             . ,(shell-quote-argument in-fn))
-                                                            (obj-file
-                                                             . ,(and out-fn
-                                                                     (shell-quote-argument out-fn))))))
-                                                     (ob-racket--expand-fmt cmd-fmt fmt-par))))
-                                              (message sh-cmd)
-                                              (shell-command-to-string sh-cmd)))
-                            ((listp eval-fun) (funcall (eval eval-fun t) in-fn out-fn))
-                            (t (error "Expected lambda expression for :eval-fun")))))))))))
-    (org-babel-reassemble-table
-     (org-babel-result-cond (cdr (assq :result-params params))
-       result
-       (ob-racket--table-or-string result))
-     (org-babel-pick-name (cdr (assq :colname-names params))
-                          (cdr (assq :colnames params)))
-     (org-babel-pick-name (cdr (assq :rowname-names params))
-                          (cdr (assq :rownames params))))))
+- :lang which adds rackets `#lang :lang' to BODY allowing the code to take a
+  :prologue, :epilogue and :var.  :var is supported only if `:lang' starts with
+  `racket', `plai' or `lazy'.
+- :cmd which allows to set the racket executable and the switches on each
+  code block.
+- :debug which outputs the body before passing it to the interpreter."
+  (let ((lang (alist-get :lang params))
+        (vars (org-babel--get-vars params))
+        (pro  (alist-get :prologue params))
+        (epi  (alist-get :epilogue params))
+        (cmd  (alist-get :cmd params "racket -u"))
+        (ext  (concat "." (alist-get :file-ext params "rkt")))
+        (file (alist-get :file params))
+        x-body)
+
+    (setq x-body (if (or lang vars pro epi)
+                     (ob-racket--wrap-body body lang vars pro epi)
+                   body))
+
+    (if (assq :debug params)
+        x-body
+      (if file
+          (with-temp-file file (insert x-body))
+        (let* ((temp   (org-babel-temp-file "ob-" ext))
+               (result (progn (with-temp-file temp (insert x-body))
+                              (org-babel-eval (concat cmd " " temp) ""))))
+          (org-babel-reassemble-table
+           (org-babel-result-cond (alist-get :result-params params)
+             result
+             (ob-racket--table-or-string result))
+           (org-babel-pick-name (alist-get :colname-names params)
+                                (alist-get :colnames params))
+           (org-babel-pick-name (alist-get :rowname-names params)
+                                (alist-get :rownames params))))))))
 
 (defun org-babel-prep-session:racket (session params)
   "Not implemented.  SESSION and PARAMS are discarded."

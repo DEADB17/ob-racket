@@ -29,11 +29,57 @@ section in the [[https://orgmode.org/manual/][org manual]].
 5. Optionally install either [[https://github.com/greghendershott/racket-mode][racket-mode]] or [[http://www.nongnu.org/geiser/][geiser]] to edit racket code.
 
 
-** Examples
+** Usage examples
 :PROPERTIES:
 :header-args:racket: :results replace
 :END:
-*** Primitives
+In addition to the [[https://orgmode.org/manual/Specific-header-arguments.html#Specific-header-arguments][header arguments]] common to all languages, =ob-racket= has two
+specific ones to control how code is evaluated.
+
+- ~:cmd~ set to ~racket --require-script~ by default.
+
+  Determines which racket executable and the [[https://docs.racket-lang.org/reference/running-sa.html#%28part._mz-cmdline%29][switches]] that will be used to
+  evaluate the code.
+
+- ~:lang~ Not set by default.
+
+  Specifies the racket language to use in the script.
+
+  When this argument is /not/ set, your code should start with a ~#lang~ line.
+
+  When it is set, your code will be automatically wrapped with ~#lang~ followed
+  by the value of the header argument.
+
+  This distinction allows your code to include external [[https://orgmode.org/manual/var.html#var][:var]] values as well as
+  adding [[https://orgmode.org/manual/prologue.html#prologue][:prologue]] and [[https://orgmode.org/manual/epilogue.html#epilogue][:epilogue]].
+
+*** No header arguments
+#+BEGIN_EXAMPLE
+  ,#+begin_src racket
+    #lang racket
+
+    (define str-1 "hello")
+    (define str-2 "world")
+    (define all (string-join (list str-1 str-2) ", "))
+    (display (string-titlecase all))
+  ,#+end_src
+#+END_EXAMPLE
+
+#+name: no-args
+#+begin_src racket :exports results
+  #lang racket
+
+  (define str-1 "hello")
+  (define str-2 "world")
+  (define all (string-join (list str-1 str-2) ", "))
+  (display (string-titlecase all))
+#+end_src
+Outputs:
+#+RESULTS: no-args
+: Hello, World
+
+
+*** ~:results output~
 #+BEGIN_EXAMPLE
   ,#+begin_src racket :lang racket/base :results output
     "Hello world"
@@ -58,16 +104,16 @@ Outputs:
 : '(a list of symbols)
 
 
-*** Lists
+*** Lists -- ~:results value~ is implied
 #+BEGIN_EXAMPLE
   ,#+NAME: a-list
-  ,#+begin_src racket :lang racket/base :results list value
-    '(hello wonderful world)
+  ,#+begin_src racket :lang racket/base :results list
+    '(Hello Wonderful World)
   ,#+end_src
 #+END_EXAMPLE
 
 #+NAME: a-list
-#+begin_src racket :lang racket/base :results list value :exports results
+#+begin_src racket :lang racket/base :results list :exports results
   '(hello wonderful world)
 #+end_src
 Outputs:
@@ -77,15 +123,15 @@ Outputs:
 - world
 
 
-*** Variables and tables
+*** Variables and tables -- ~:results value~ is implied
 #+BEGIN_EXAMPLE
-  ,#+begin_src racket :lang racket/base :results table value :var input=a-list
+  ,#+begin_src racket :lang racket/base :results table :var input=a-list
     (list input null input)
   ,#+end_src
 #+END_EXAMPLE
 
 #+NAME: vars-and-tables
-#+begin_src racket racket :lang racket/base :results table value :var input=a-list :exports results
+#+begin_src racket racket :lang racket/base :results table :var input=a-list :exports results
   (list input null input)
 #+end_src
 Outputs:
@@ -140,7 +186,7 @@ Creates the file =code.rkt= with this content:
 
 ** Source code
 The contents of [[./ob-racket.el][ob-racket.el]] are extracted from this file. To re-generate the
-code, open this file in an Emacs buffer and =M-x= =org-babel-tangle-file=. The
+code, open this file in an Emacs buffer and =M-x= =org-babel-tangle=. The
 complete source will be in exported to =ob-racket.el=.
 
 *** Main (Public functions)

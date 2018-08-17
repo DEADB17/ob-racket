@@ -143,34 +143,51 @@ Returns the wrapped body as a string."
              "\n")))
 
 (defun org-babel-execute:racket (body params)
-  "Evaluate a `racket' code block.
-BODY and PARAMS
-Some custom header arguments are supported to control the evaluation.
-These are:
-- :lang which adds rackets `#lang :lang' to BODY allowing the code to take a
-  :prologue, :epilogue and :var.  :var is supported only if `:lang' starts with
-  `racket', `plai' or `lazy'.
-- :cmd which allows to set the racket executable and the switches on each
-  code block.
-- :debug which outputs the body before passing it to the interpreter."
-  (let ((lang (alist-get :lang params))
-        (vars (org-babel--get-vars params))
-        (pro  (alist-get :prologue params))
-        (epi  (alist-get :epilogue params))
-        (cmd  (alist-get :cmd params "racket -u"))
-        (ext  (concat "." (alist-get :file-ext params "rkt")))
-        (file (alist-get :file params))
+  "Evaluate a `racket' code block.  BODY and PARAMS.
+
+Some custom header arguments are supported to control the
+evaluation.  These are:
+
+- :lang which adds rackets `#lang :lang' to BODY allowing the
+  code to take a :prologue, :epilogue and :var.  :var is
+  supported only if `:lang' starts with `racket', `plai' or
+  `lazy'.
+
+- :cmd which allows to set the racket executable and the switches
+  on each code block.
+
+- :debug which outputs the body before passing it to the
+  interpreter.
+
+- :eval-file FILENAME which writes the body to FILENAME and then
+  evaluates the result.  When FILENAME is equal to \"\" it is
+  derived from the code-block name."
+  (let ((lang      (alist-get :lang params))
+        (vars      (org-babel--get-vars params))
+        (prologue  (alist-get :prologue params))
+        (epilogue  (alist-get :epilogue params))
+        (cmd       (alist-get :cmd params "racket -u"))
+        (ext       (alist-get :file-ext params "rkt"))
+        (file      (alist-get :file params))
+        (eval-file (alist-get :eval-file params))
         x-body)
 
-    (setq x-body (if (or lang vars pro epi)
-                     (ob-racket--wrap-body body lang vars pro epi)
+    (when (eq "" eval-file)
+      (setq eval-file (alist-get :file
+                                 (org-babel-generate-file-param
+                                  (nth 4 (org-babel-get-src-block-info))
+                                  (cons (cons :file-ext ext) params)))))
+
+    (setq x-body (if (or lang vars prologue epilogue)
+                     (ob-racket--wrap-body body lang vars prologue epilogue)
                    body))
 
     (if (assq :debug params)
         x-body
       (if file
           (with-temp-file file (insert x-body))
-        (let* ((temp   (org-babel-temp-file "ob-" ext))
+        (let* ((temp (or eval-file
+                         (org-babel-temp-file "ob-" (concat "." ext))))
                (result (progn (with-temp-file temp (insert x-body))
                               (org-babel-eval (concat cmd " " temp) ""))))
           (org-babel-reassemble-table

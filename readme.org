@@ -33,7 +33,7 @@ section in the [[https://orgmode.org/manual/][org manual]].
 :PROPERTIES:
 :header-args:racket: :results replace
 :END:
-In addition to the [[https://orgmode.org/manual/Specific-header-arguments.html#Specific-header-arguments][header arguments]] common to all languages, =ob-racket= has two
+In addition to the [[https://orgmode.org/manual/Specific-header-arguments.html#Specific-header-arguments][header arguments]] common to all languages, =ob-racket= has some
 specific ones to control how code is evaluated.
 
 - ~:cmd~ set to ~racket --require-script~ by default.
@@ -52,6 +52,18 @@ specific ones to control how code is evaluated.
 
   This distinction allows your code to include external [[https://orgmode.org/manual/var.html#var][:var]] values as well as
   adding [[https://orgmode.org/manual/prologue.html#prologue][:prologue]] and [[https://orgmode.org/manual/epilogue.html#epilogue][:epilogue]].
+
+- ~:eval-file~ Not set by default.
+
+  When [[https://docs.racket-lang.org/reference/require.html][requiring modules]] that are relative to the code block the evaluation
+  needs to happen in a specific path instead of =org-babel-temporary-directory=.
+
+  =:eval-file FILENAME= Can be used to specify where the code block is written
+  and evaluated.
+
+  If =:eval-file “”= is used, the name is taken from =#+NAME= and ~rkt~ is used
+  as the extension. =:output-dir= can be used to specify the directory.
+
 
 *** No header arguments
 #+BEGIN_EXAMPLE
@@ -173,7 +185,7 @@ Outputs:
       (display "Hello World"))
   ,#+end_src
 #+END_EXAMPLE
-Creates the file =code.rkt= with this content:
+Creates the file =code.rkt= in the current directory with this content:
 #+NAME: code
 #+begin_src racket :file-ext rkt
   #lang racket
@@ -182,6 +194,31 @@ Creates the file =code.rkt= with this content:
   (define (fn)
     (display "Hello World"))
 #+end_src
+
+The content of the file is not evaluated.
+
+*** Eval-file
+=:results output= needs to be set to get the result of the evaluation.
+#+BEGIN_EXAMPLE
+  ,#+NAME: eval-file
+  ,#+begin_src racket :eval-file "" :results output
+    #lang racket
+
+    (require "code.rkt") ;; Created in the `File` sample
+    (fn)
+  ,#+end_src
+#+END_EXAMPLE
+Creates the file =eval-file.rkt= in the current directory with this content:
+#+name: eval-file
+#+begin_src racket :exports both :eval-file "" :results output
+  #lang racket
+
+  (require "code.rkt") ;; Created in the `File` sample
+  (fn)
+#+end_src
+And outputs:
+#+RESULTS: eval-file
+: Hello World
 
 
 ** Source code
@@ -203,34 +240,51 @@ complete source will be in exported to =ob-racket.el=.
 #+NAME: execute
 #+BEGIN_SRC emacs-lisp
   (defun org-babel-execute:racket (body params)
-    "Evaluate a `racket' code block.
-  BODY and PARAMS
-  Some custom header arguments are supported to control the evaluation.
-  These are:
-  - :lang which adds rackets `#lang :lang' to BODY allowing the code to take a
-    :prologue, :epilogue and :var.  :var is supported only if `:lang' starts with
-    `racket', `plai' or `lazy'.
-  - :cmd which allows to set the racket executable and the switches on each
-    code block.
-  - :debug which outputs the body before passing it to the interpreter."
-    (let ((lang (alist-get :lang params))
-          (vars (org-babel--get-vars params))
-          (pro  (alist-get :prologue params))
-          (epi  (alist-get :epilogue params))
-          (cmd  (alist-get :cmd params "racket -u"))
-          (ext  (concat "." (alist-get :file-ext params "rkt")))
-          (file (alist-get :file params))
+    "Evaluate a `racket' code block.  BODY and PARAMS.
+
+  Some custom header arguments are supported to control the
+  evaluation.  These are:
+
+  - :lang which adds rackets `#lang :lang' to BODY allowing the
+    code to take a :prologue, :epilogue and :var.  :var is
+    supported only if `:lang' starts with `racket', `plai' or
+    `lazy'.
+
+  - :cmd which allows to set the racket executable and the switches
+    on each code block.
+
+  - :debug which outputs the body before passing it to the
+    interpreter.
+
+  - :eval-file FILENAME which writes the body to FILENAME and then
+    evaluates the result.  When FILENAME is equal to \"\" it is
+    derived from the code-block name."
+    (let ((lang      (alist-get :lang params))
+          (vars      (org-babel--get-vars params))
+          (prologue  (alist-get :prologue params))
+          (epilogue  (alist-get :epilogue params))
+          (cmd       (alist-get :cmd params "racket -u"))
+          (ext       (alist-get :file-ext params "rkt"))
+          (file      (alist-get :file params))
+          (eval-file (alist-get :eval-file params))
           x-body)
 
-      (setq x-body (if (or lang vars pro epi)
-                       (ob-racket--wrap-body body lang vars pro epi)
+      (when (eq "" eval-file)
+        (setq eval-file (alist-get :file
+                                   (org-babel-generate-file-param
+                                    (nth 4 (org-babel-get-src-block-info))
+                                    (cons (cons :file-ext ext) params)))))
+
+      (setq x-body (if (or lang vars prologue epilogue)
+                       (ob-racket--wrap-body body lang vars prologue epilogue)
                      body))
 
       (if (assq :debug params)
           x-body
         (if file
             (with-temp-file file (insert x-body))
-          (let* ((temp   (org-babel-temp-file "ob-" ext))
+          (let* ((temp (or eval-file
+                           (org-babel-temp-file "ob-" (concat "." ext))))
                  (result (progn (with-temp-file temp (insert x-body))
                                 (org-babel-eval (concat cmd " " temp) ""))))
             (org-babel-reassemble-table
